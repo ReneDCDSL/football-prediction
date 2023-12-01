@@ -1,6 +1,6 @@
 requests
-scikit-learn==1.0.2
+scikit-learn
 pandas
-joblib==1.1.0
+joblib
 streamlit
 pickle
