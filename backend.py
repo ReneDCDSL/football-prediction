@@ -93,4 +93,4 @@ trained_model = train_model(processed_data)
 
 # Save the trained model
 joblib.dump(trained_model, "trained_model.joblib", protocol=4)
-pickle.dump(trained_model, open('trained_model.sav', 'wb'))
+pickle.dump(trained_model, open('trained_model.sav', 'wb'), protocol=4)
