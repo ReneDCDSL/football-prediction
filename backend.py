@@ -91,4 +91,4 @@ processed_data = preprocess_data(data)
 trained_model = train_model(processed_data)
 
 # Save the trained model
-joblib.dump(trained_model, "trained_model.joblib")
+joblib.dump(trained_model, "trained_model.joblib", protocol=4)
