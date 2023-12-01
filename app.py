@@ -4,8 +4,9 @@ import joblib
 
 def predict_outcome(opponent, referee, possession):
     # Load the trained model
-    trained_model = joblib.load("trained_model.joblib")
-
+    #trained_model = joblib.load("trained_model.joblib")
+    trained_model = pickle.load(open('trained_model.sav', 'rb'))
+    
     # Create a DataFrame with user input
     user_input = pd.DataFrame({
         "opponent": [opponent],
