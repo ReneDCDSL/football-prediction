@@ -3,7 +3,9 @@ import pandas as pd
 import requests
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 import joblib
 
 def get_football_data():
@@ -17,38 +19,76 @@ def get_football_data():
     return response.json()
 
 def preprocess_data(data):
-    features = ["possession", "attacks", "shoots", "corners", "fouls", "substitutions"]
-    processed_data = pd.DataFrame(columns=features + ["outcome"])
-
+    features = ["possession", "opponent", "referee", "total_goals", "outcome"]
+    processed_data = pd.DataFrame(columns=features)
     for match in data["result"]:
-        match_info = match.get("teamA", {}).get("stats", {})
-        match_features = [match_info.get(feature, None) for feature in features]
-        outcome = 1 if match["teamA"]["score"]["f"] > match["teamB"]["score"]["f"] else 0
+        match_info_teamA = match.get("teamA", {}).get("stats", {})
+        match_info_teamB = match.get("teamB", {}).get("stats", {})
 
-        processed_data = processed_data.append(
-            pd.Series(match_features + [outcome], index=features + ["outcome"]),
-            ignore_index=True,
+        
+        # Skips match with missing data
+        if match_info_teamA.get('possession')==None or (match['referee']==None):
+            continue
+            
+        possession_teamA = int(match_info_teamA.get("possession", 0))
+        possession_teamB = int(match_info_teamB.get("possession", 0))
+
+        possession_teamA = int(possession_teamA)
+        possession_teamB = int(possession_teamB)
+
+        total_goals = int(match["teamA"]["score"]["f"]) + int(match["teamB"]["score"]["f"])
+
+        outcome = "win" if match["teamA"]["score"]["f"] > match["teamB"]["score"]["f"] else (
+            "draw" if match["teamA"]["score"]["f"] == match["teamB"]["score"]["f"] else "lose"
         )
+
+        opponent_name = match["teamB"]["name"]
+        referee_name = match["referee"]["name"]
+
+        processed_data = processed_data.append({
+            "possession": possession_teamA,
+            "opponent": opponent_name,
+            "referee": referee_name,
+            "total_goals": total_goals,
+            "outcome": outcome
+        }, ignore_index=True)
 
     return processed_data
 
 def train_model(processed_data):
     X = processed_data.drop("outcome", axis=1)
     y = processed_data["outcome"]
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+
+    # Define the categorical features and numerical features
+    categorical_features = ["opponent", "referee"]
+    numerical_features = ["possession", "total_goals"]
+
+    # Create transformers for one-hot encoding of categorical features
+    categorical_transformer = OneHotEncoder(handle_unknown="ignore")
+
+    # Create a preprocessor that applies transformers to different feature sets
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("cat", categorical_transformer, categorical_features),
+        ],
+        remainder="passthrough"
     )
-    model = RandomForestClassifier()
-    model.fit(X_train, y_train)
-    predictions = model.predict(X_test)
-    accuracy = accuracy_score(y_test, predictions)
-    print(f"Model Accuracy: {accuracy}")
+
+    # Create a pipeline that applies the preprocessor and then fits the model
+    model = Pipeline([
+        ("preprocessor", preprocessor),
+        ("classifier", RandomForestClassifier())
+    ])
+
+    # Fit the model
+    model.fit(X, y)
+
     return model
 
-if __name__ == "__main__":
-    data = get_football_data()
-    processed_data = preprocess_data(data)
-    trained_model = train_model(processed_data)
+# Train the model
+data = get_football_data()
+processed_data = preprocess_data(data)
+trained_model = train_model(processed_data)
 
-    # Save the trained model
-    joblib.dump(trained_model, "trained_model.joblib")
+# Save the trained model
+joblib.dump(trained_model, "trained_model.joblib")
