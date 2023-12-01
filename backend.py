@@ -7,6 +7,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 import joblib
+import pickle
 
 def get_football_data():
     url = "https://soccer-football-info.p.rapidapi.com/matches/by/basic/"
@@ -92,3 +93,4 @@ trained_model = train_model(processed_data)
 
 # Save the trained model
 joblib.dump(trained_model, "trained_model.joblib", protocol=4)
+pickle.dump(trained_model, open('trained_model.sav', 'wb'))

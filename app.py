@@ -1,6 +1,7 @@
 # app.py
 import streamlit as st
 import joblib
+import pickle
 
 def predict_outcome(opponent, referee, possession):
     # Load the trained model
